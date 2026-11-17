@@ -1,10 +1,11 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Pet Adoption API: saves adoption requests and pet posts, uploads photos, sends emails",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "node --watch index.js"
   },
   "keywords": [],
   "author": "",
@@ -18,5 +19,8 @@
     "mongoose": "^9.12.2",
     "multer": "^2.5.0",
     "nodemailer": "^10.6.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

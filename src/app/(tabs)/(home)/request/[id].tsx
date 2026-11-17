@@ -6,7 +6,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
-  Alert, Image, Modal, Pressable, ScrollView,
+  Image, Modal, Platform, Pressable, ScrollView,
   type ScrollViewInstance,
   StyleSheet,
   Text,
@@ -20,6 +20,7 @@ import {
   REQUIRED_MESSAGE,
   SectionTitle,
   SelectField,
+  showAlert,
   SingleChoice,
   TextField,
 } from '@/components/form-parts';
@@ -147,7 +148,7 @@ const [sending, setSending] = useState(false);
 
     onSent();
   } catch {
-    Alert.alert('Something went wrong', 'Please check your connection and try again.');
+    showAlert('Something went wrong', 'Please check your connection and try again.');
   } finally {
     setSending(false);
   }
@@ -290,16 +291,30 @@ const [sending, setSending] = useState(false);
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
           <View style={styles.handle} />
           <Text style={styles.sheetTitle}>Preferred date</Text>
-          <DateTimePicker
-            value={draftDate}
-            mode="date"
-            display="inline"
-            minimumDate={tomorrow}
-            maximumDate={lastDay}
-            accentColor={Colors.primary}
-            themeVariant="light"
-            onValueChange={(_event, picked) => setDraftDate(picked)}
-          />
+          {Platform.OS === 'web' ? (
+            // The iPhone calendar doesn't exist in a browser, so the web uses the browser's date box
+            <input
+              type="date"
+              value={toInputDate(draftDate)}
+              min={toInputDate(tomorrow)}
+              max={toInputDate(lastDay)}
+              onChange={(event) => {
+                if (event.target.value) setDraftDate(new Date(`${event.target.value}T00:00:00`));
+              }}
+              style={webDateInput}
+            />
+          ) : (
+            <DateTimePicker
+              value={draftDate}
+              mode="date"
+              display="inline"
+              minimumDate={tomorrow}
+              maximumDate={lastDay}
+              accentColor={Colors.primary}
+              themeVariant="light"
+              onValueChange={(_event, picked) => setDraftDate(picked)}
+            />
+          )}
           <AppButton
             label="Done"
             onPress={() => {
@@ -325,6 +340,24 @@ function startOfDay(date: Date) {
   copy.setHours(0, 0, 0, 0);
   return copy;
 }
+
+// "2026-11-20" style, the format the web date box uses
+function toInputDate(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+const webDateInput = {
+  margin: '16px 0',
+  padding: '12px 14px',
+  fontSize: 18,
+  fontFamily: 'Inter_400Regular',
+  border: `1px solid ${Colors.inputBorder}`,
+  borderRadius: 6,
+  backgroundColor: Colors.inputBackground,
+  color: Colors.text,
+};
 
 function formatDate(date: Date) {
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });

@@ -7,7 +7,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
-  Alert,
   Image,
   Modal,
   Platform,
@@ -25,6 +24,7 @@ import {
   MultiChoice,
   REQUIRED_MESSAGE,
   SelectField,
+  showAlert,
   SingleChoice,
   TextField,
 } from '@/components/form-parts';
@@ -156,9 +156,16 @@ function AddPetForm({ onPosted }: { onPosted: () => void }) {
 
       // Each photo goes in as a file named "photos", the name the server expects.
       // File (from expo-file-system) opens the photo on the phone so fetch can send it.
-      photos.forEach((uri) => {
-        formData.append('photos', new File(uri));
-      });
+      for (const uri of photos) {
+        if (Platform.OS === 'web') {
+          // In a browser the photo is already in memory, so turn it into a Blob
+          const blob = await (await fetch(uri)).blob();
+          const extension = blob.type.split('/')[1] ?? 'jpg';
+          formData.append('photos', blob, `photo.${extension}`);
+        } else {
+          formData.append('photos', new File(uri));
+        }
+      }
 
       // No headers here: fetch sets the right one for FormData by itself
       const response = await fetch(`${API_URL}/api/pets`, {
@@ -175,7 +182,7 @@ function AddPetForm({ onPosted }: { onPosted: () => void }) {
       onPosted();
     } catch (error) {
       console.error('Post failed:', error); // shows the real reason in the Expo terminal
-      Alert.alert('Something went wrong', 'Please check your connection and try again.');
+      showAlert('Something went wrong', 'Please check your connection and try again.');
     } finally {
       setPosting(false);
     }
@@ -203,7 +210,7 @@ function AddPetForm({ onPosted }: { onPosted: () => void }) {
   const takePhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Camera access needed', 'Allow camera access in Settings to take a photo.');
+      showAlert('Camera access needed', 'Allow camera access in Settings to take a photo.');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });

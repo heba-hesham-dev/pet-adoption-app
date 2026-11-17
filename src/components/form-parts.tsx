@@ -3,8 +3,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ReactNode } from 'react';
 import {
+  Alert,
   KeyboardTypeOptions,
   LayoutChangeEvent,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -17,6 +19,16 @@ import { Colors } from '@/constants/colors';
 import { Fonts } from '@/constants/fonts';
 
 export const REQUIRED_MESSAGE = 'Please fill this in';
+
+// A pop-up message that works on the phone and on the web
+// (React Native's Alert doesn't show anything in a browser).
+export function showAlert(title: string, message: string) {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}\n\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+}
 
 // Orange title like "Your details" or "Book a visit"
 export function SectionTitle({ children }: { children: ReactNode }) {
