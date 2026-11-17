@@ -2,6 +2,7 @@
 // to review, so it does not appear on Home.
 // Photos come from the real camera or gallery, only when the user picks them.
 import { Ionicons } from '@expo/vector-icons';
+import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
@@ -29,6 +30,7 @@ import {
 } from '@/components/form-parts';
 import { Colors } from '@/constants/colors';
 import { Fonts } from '@/constants/fonts';
+import { API_URL } from '@/constants/api';
 
 const SHADOW = '0px 4px 4px rgba(0, 0, 0, 0.25)';
 const MAX_PHOTOS = 5;
@@ -122,7 +124,10 @@ function AddPetForm({ onPosted }: { onPosted: () => void }) {
   };
   const errorFor = (field: FieldName) => (submitted ? errors[field] : undefined);
 
-  const post = () => {
+  // Is the post being sent right now? The button shows "Posting..." meanwhile.
+  const [posting, setPosting] = useState(false);
+
+  const post = async () => {
     const firstMissing = FIELD_ORDER.find((field) => errors[field]);
     if (firstMissing) {
       setSubmitted(true);
@@ -130,8 +135,50 @@ function AddPetForm({ onPosted }: { onPosted: () => void }) {
       scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
       return;
     }
-    // Later (backend): upload the photos and send the post to the shelter here
-    onPosted();
+
+    setPosting(true);
+    try {
+      // FormData carries text and photo files together (JSON can't carry files)
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('species', species);
+      formData.append('breed', breed);
+      formData.append('age', age);
+      formData.append('sex', sex);
+      formData.append('size', size);
+      formData.append('health', JSON.stringify(health));
+      formData.append('goodWith', JSON.stringify(goodWith));
+      formData.append('about', about);
+      formData.append('location', location);
+      formData.append('adoptionFee', fee);
+      formData.append('email', email);
+      formData.append('phone', phone);
+
+      // Each photo goes in as a file named "photos", the name the server expects.
+      // File (from expo-file-system) opens the photo on the phone so fetch can send it.
+      photos.forEach((uri) => {
+        formData.append('photos', new File(uri));
+      });
+
+      // No headers here: fetch sets the right one for FormData by itself
+      const response = await fetch(`${API_URL}/api/pets`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        // The server explains what went wrong in "error"
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error ?? `Server error ${response.status}`);
+      }
+
+      onPosted();
+    } catch (error) {
+      console.error('Post failed:', error); // shows the real reason in the Expo terminal
+      Alert.alert('Something went wrong', 'Please check your connection and try again.');
+    } finally {
+      setPosting(false);
+    }
   };
 
   // ----- Photos -----
@@ -351,7 +398,11 @@ function AddPetForm({ onPosted }: { onPosted: () => void }) {
           onLayout={saveY('phone')}
         />
 
-        <AppButton label="Post for adoption" onPress={post} style={styles.postButton} />
+        <AppButton
+          label={posting ? 'Posting...' : 'Post for adoption'}
+          onPress={posting ? undefined : post}
+          style={styles.postButton}
+        />
       </ScrollView>
 
       {/* Photo bottom sheet */}

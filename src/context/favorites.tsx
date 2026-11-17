@@ -1,6 +1,8 @@
 // Shared memory for Favorites.
 // Home, Pet Profile and Favorites all read from here, so they always agree.
 // It also shows the dark message at the bottom ("Added to favorites", ...).
+// Favorites are saved on the phone (AsyncStorage), so they stay after the app is closed.
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,10 +22,31 @@ type Message = { text: string; onUndo?: () => void };
 
 const FavoritesContext = createContext<FavoritesValue | null>(null);
 
+// The name the list is saved under on the phone
+const STORAGE_KEY = 'favoriteIds';
+
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  // Starts empty: nothing is saved when the app opens
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [message, setMessage] = useState<Message | null>(null);
+
+  // Has the saved list been read from the phone yet?
+  const [loaded, setLoaded] = useState(false);
+
+  // 1. When the app opens: read the saved favorites from the phone
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((saved) => {
+        if (saved) setFavoriteIds(JSON.parse(saved));
+      })
+      .catch(() => {}) // if reading fails, just start with an empty list
+      .finally(() => setLoaded(true));
+  }, []);
+
+  // 2. Every time the list changes: save it on the phone
+  useEffect(() => {
+    if (!loaded) return; // don't overwrite the saved list before it was read
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(favoriteIds)).catch(() => {});
+  }, [favoriteIds, loaded]);
 
   const isFavorite = (id: string) => favoriteIds.includes(id);
 

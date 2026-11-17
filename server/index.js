@@ -12,6 +12,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Prints every request that reaches the server, e.g. "POST /api/pets"
+app.use((req, res, next) => {
+  console.log(req.method, req.url);
+  next();
+});
+
 app.get('/', (req, res) => {
   res.send('Pet Adoption API is running');
 });
@@ -73,12 +79,14 @@ app.post('/api/pets', upload.array('photos', 5), async (req, res) => {
 
     res.status(201).json(post);
   } catch (error) {
+    console.error('Pet post failed:', error.message);
     res.status(400).json({ error: error.message });
   }
 });
 
 // Catches upload problems from multer, like too many photos or a file that isn't an image
 app.use((error, req, res, next) => {
+  console.error('Upload failed:', error.message);
   res.status(400).json({ error: error.message });
 });
 

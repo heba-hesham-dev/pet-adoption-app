@@ -1,12 +1,12 @@
 // Request to Adopt: one form for every pet (request/max, request/luna, ...).
 // Required: everything except Message. Empty fields get a red outline and
 // "Please fill this in", and the screen scrolls to the first one.
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
-  Image, Modal, Pressable, ScrollView,
+  Alert, Image, Modal, Pressable, ScrollView,
   type ScrollViewInstance,
   StyleSheet,
   Text,
@@ -23,6 +23,7 @@ import {
   SingleChoice,
   TextField,
 } from '@/components/form-parts';
+import { API_URL } from '@/constants/api';
 import { Colors } from '@/constants/colors';
 import { Fonts } from '@/constants/fonts';
 import { getPetById, Pet } from '@/data/pets';
@@ -108,18 +109,49 @@ function RequestForm({ pet, onSent }: { pet: Pet; onSent: () => void }) {
     time: time ? undefined : REQUIRED_MESSAGE,
   };
   const errorFor = (name: FieldName) => (submitted ? errors[name] : undefined);
+const [sending, setSending] = useState(false);
 
-  const sendRequest = () => {
-    const firstMissing = FIELD_ORDER.find((name) => errors[name]);
-    if (firstMissing) {
-      setSubmitted(true);
-      const y = positions.current[firstMissing] ?? 0;
-      scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
-      return;
+  const sendRequest = async () => {
+  const firstMissing = FIELD_ORDER.find((name) => errors[name]);
+  if (firstMissing) {
+    setSubmitted(true);
+    const y = positions.current[firstMissing] ?? 0;
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
+    return;
+  }
+
+  setSending(true);
+  try {
+    const response = await fetch(`${API_URL}/api/requests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        petId: pet.id,
+        petName: pet.name,
+        petBreed: pet.breed,
+        fullName,
+        phone,
+        email,
+        homeType,
+        kidsAtHome: kids,
+        otherPets,
+        visitDate: date,
+        visitTime: time,
+        message,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Request failed');
     }
-    // Later (backend): send the request to the shelter here
+
     onSent();
-  };
+  } catch {
+    Alert.alert('Something went wrong', 'Please check your connection and try again.');
+  } finally {
+    setSending(false);
+  }
+};
 
   const openCalendar = () => {
     setDraftDate(date ?? tomorrow);
@@ -240,7 +272,11 @@ function RequestForm({ pet, onSent }: { pet: Pet; onSent: () => void }) {
           multiline
         />
 
-        <AppButton label="Send request" onPress={sendRequest} style={styles.sendButton} />
+        <AppButton
+  label={sending ? 'Sending...' : 'Send request'}
+  onPress={sending ? undefined : sendRequest}
+  style={styles.sendButton}
+/>
         <Text style={styles.note}>The shelter will contact you to confirm your visit.</Text>
       </ScrollView>
 

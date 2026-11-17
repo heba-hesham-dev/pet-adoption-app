@@ -4,9 +4,9 @@ import { SuccessScreen } from '@/components/success-screen';
 export default function PostPublishedScreen() {
   return (
     <SuccessScreen
-      headerTitle="Post Published"
-      title="Your post is posted!"
-      message={'Your post is now live.\nPeople interested in adopting will contact you using the details you shared.'}
+      headerTitle="Post Sent"
+      title="Your post was sent!"
+      message="The shelter will review your pet's details and contact you within 24 hours by phone or email."
     />
   );
 }
