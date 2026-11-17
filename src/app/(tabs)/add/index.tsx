@@ -3,6 +3,7 @@
 // Photos come from the real camera or gallery, only when the user picks them.
 import { Ionicons } from '@expo/vector-icons';
 import { File } from 'expo-file-system';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
@@ -35,6 +36,18 @@ import { API_URL } from '@/constants/api';
 const SHADOW = '0px 4px 4px rgba(0, 0, 0, 0.25)';
 const MAX_PHOTOS = 5;
 const SPECIES = ['Dog', 'Cat', 'Bird', 'Rabbit', 'Turtle', 'Other'];
+
+// Phone photos can be several MB. The server accepts about 4.5 MB per request,
+// so each photo is resized to 1080 px wide and saved as a lighter JPEG first.
+async function shrinkPhoto(uri: string) {
+  try {
+    const image = await ImageManipulator.manipulate(uri).resize({ width: 1080 }).renderAsync();
+    const result = await image.saveAsync({ compress: 0.6, format: SaveFormat.JPEG });
+    return result.uri;
+  } catch {
+    return uri; // if shrinking fails, send the original photo
+  }
+}
 
 export default function AddPetScreen() {
   // Changing this number gives a fresh, empty form after posting
@@ -156,7 +169,8 @@ function AddPetForm({ onPosted }: { onPosted: () => void }) {
 
       // Each photo goes in as a file named "photos", the name the server expects.
       // File (from expo-file-system) opens the photo on the phone so fetch can send it.
-      for (const uri of photos) {
+      for (const original of photos) {
+        const uri = await shrinkPhoto(original);
         if (Platform.OS === 'web') {
           // In a browser the photo is already in memory, so turn it into a Blob
           const blob = await (await fetch(uri)).blob();

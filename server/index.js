@@ -18,6 +18,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// Make sure the database is connected before any route runs
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error('Database connection failed:', error.message);
+    res.status(500).json({ error: 'Database connection failed' });
+  }
+});
+
 app.get('/', (req, res) => {
   res.send('Pet Adoption API is running');
 });
@@ -90,15 +101,34 @@ app.use((error, req, res, next) => {
   res.status(400).json({ error: error.message });
 });
 
-const PORT = process.env.PORT || 3000;
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+// On Vercel the server sleeps between requests, so we connect to MongoDB
+// on the first request and reuse that connection for the next ones.
+let connecting = null;
+function connectToDatabase() {
+  if (mongoose.connection.readyState === 1) return Promise.resolve();
+  if (!connecting) {
+    connecting = mongoose.connect(process.env.MONGODB_URI).catch((error) => {
+      connecting = null; // try again on the next request
+      throw error;
     });
-  })
-  .catch((error) => {
-    console.error('Could not connect to MongoDB:', error.message);
-  });
+  }
+  return connecting;
+}
+
+// Vercel uses this exported app
+module.exports = app;
+
+// On the Mac (node index.js): connect, then start listening on port 3000
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  connectToDatabase()
+    .then(() => {
+      console.log('Connected to MongoDB');
+      app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error('Could not connect to MongoDB:', error.message);
+    });
+}

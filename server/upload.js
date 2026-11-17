@@ -12,7 +12,7 @@ cloudinary.config({
 // memoryStorage keeps each photo in memory just long enough to send it to Cloudinary.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024, files: 5 }, // up to 5 photos, 10 MB each
+  limits: { fileSize: 4 * 1024 * 1024, files: 5 }, // up to 5 photos, 4 MB each (Vercel accepts about 4.5 MB per request)
   fileFilter: (req, file, callback) => {
     if (file.mimetype.startsWith('image/')) {
       callback(null, true);
