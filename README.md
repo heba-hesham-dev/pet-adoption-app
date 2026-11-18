@@ -1,56 +1,83 @@
-# Welcome to your Expo app 👋
+# Pet Adoption App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile app for adopting pets from a shelter, or offering your own pet for adoption. Designed in Figma and built end to end: React Native front end and a Node.js + MongoDB backend.
 
-## Get started
+**[Live demo](https://pet-adoption-app-server.vercel.app)** · API: [pet-adoption-api](https://pet-adoption-api-ten.vercel.app)
 
-1. Install dependencies
+> The app is made for phones, so the live demo looks best when opened on a phone.
+> The UI/UX design and Figma prototype are in my **[Design Portfolio](https://claude.ai/artifact/4MHNpoHnHKavu3Lv2Bv99Y)**.
 
-   ```bash
-   npm install
-   ```
+## What it does
 
-2. Start the app
+- **Browse pets:** dogs, cats and other pets, each with a profile (age, health, who they're good with, and more).
+- **Favorites:** save pets for later. Favorites are kept on the device, no account needed.
+- **Request to adopt:** fill in a short form and pick a visit date and time. The request is saved in the database and a confirmation email is sent to the user.
+- **Add a pet:** offer a pet for adoption with up to 5 photos and its details. Photos are uploaded to the cloud, the post is saved in the database, and a confirmation email is sent. The shelter reviews posts before they appear in the app.
 
-   ```bash
-   npx expo start
-   ```
+## Tech stack
 
-In the output, you'll find options to open the app in a
+**Front end**
+- React Native with **Expo** (SDK 58) and **Expo Router**
+- TypeScript
+- React Context + AsyncStorage for favorites
+- expo-image-picker (camera and gallery) and expo-image-manipulator (shrinks photos before upload)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+**Backend** (`server/` folder)
+- **Node.js** + **Express** REST API
+- **MongoDB Atlas** with **Mongoose** (schemas and validation)
+- **Multer** to receive photos + **Cloudinary** to store them
+- **Nodemailer** (Gmail) for confirmation emails
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+**Hosting:** the app (web build) and the API are deployed as two projects on **Vercel**.
 
-## Get a fresh project
+## API
 
-When you're ready, run:
+| Method | Route | What it does |
+| --- | --- | --- |
+| `POST` | `/api/requests` | Saves an adoption request and emails the user |
+| `POST` | `/api/pets` | Uploads the photos, saves the pet post and emails the user |
 
-```bash
-npm run reset-project
+## Project structure
+
+```
+src/
+  app/          screens (Expo Router): home, pet profile, request to adopt, favorites, add a pet
+  components/   reusable UI (buttons, pet cards, form parts, success screen)
+  constants/    colors, fonts, API address
+  context/      favorites
+  data/         the shelter's pets
+server/
+  index.js      Express app and routes
+  models/       Mongoose models: Request, PetPost
+  upload.js     photo upload (Multer + Cloudinary)
+  email.js      confirmation emails (Nodemailer)
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## Run locally
 
-### Other setup steps
+**App**
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```
+npm install
+npx expo start
+```
 
-## Learn more
+Press `w` to open it in the browser, or scan the QR code with Expo Go. To use your own server, add a `.env` file in the project folder:
 
-To learn more about developing your project with Expo, look at the following resources:
+```
+EXPO_PUBLIC_API_URL=http://YOUR_COMPUTER_IP:3000
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+**Server**
 
-## Join the community
+```
+cd server
+npm install
+npm run dev
+```
 
-Join our community of developers creating universal apps.
+Copy `server/.env.example` to `server/.env` and fill in your MongoDB, Gmail App Password and Cloudinary keys.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## About
+
+Designed and built by **Heba Hesham**: from the Figma design to the database.

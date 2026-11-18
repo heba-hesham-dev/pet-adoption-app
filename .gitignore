@@ -43,3 +43,7 @@ example
 /android
 
 .env
+
+# old practice files, kept on the Mac only
+practice/
+old-expo-template/
