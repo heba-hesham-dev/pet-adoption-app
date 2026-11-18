@@ -215,6 +215,13 @@ function AddPetForm({ onPosted }: { onPosted: () => void }) {
     action?.();
   };
   const closeSheetThen = (action: () => void) => {
+    // On the web, the browser only opens the gallery or camera right at the tap,
+    // so we open it immediately instead of waiting for the sheet to close.
+    if (Platform.OS === 'web') {
+      setShowPhotoSheet(false);
+      action();
+      return;
+    }
     pendingPhotoAction.current = action;
     setShowPhotoSheet(false);
     // onDismiss (below) only fires on iPhone, so Android uses a short wait instead
@@ -222,10 +229,13 @@ function AddPetForm({ onPosted }: { onPosted: () => void }) {
   };
 
   const takePhoto = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      showAlert('Camera access needed', 'Allow camera access in Settings to take a photo.');
-      return;
+    // On the web, the browser asks for camera access by itself
+    if (Platform.OS !== 'web') {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        showAlert('Camera access needed', 'Allow camera access in Settings to take a photo.');
+        return;
+      }
     }
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
     if (!result.canceled) addPhotos(result.assets.map((asset) => asset.uri));
